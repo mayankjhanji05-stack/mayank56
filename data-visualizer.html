@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualizer Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .input-methods {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .method-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .method-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .method-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 40px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: #f9f9ff;
+        }
+
+        .upload-zone.dragover {
+            background: #e8f0ff;
+            border-color: #4CAF50;
+            transform: scale(1.02);
+        }
+
+        .upload-zone p {
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .upload-zone button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .upload-zone button:hover {
+            background: #5568d3;
+        }
+
+        #manual-data {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+
+        #parse-manual-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        #parse-manual-btn:hover {
+            background: #45a049;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .control-group select,
+        .control-group input[type="text"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+
+        .control-group input[type="color"] {
+            height: 50px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .primary-btn, .secondary-btn {
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .primary-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .secondary-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .secondary-btn:hover {
+            background: #da190b;
+        }
+
+        #chart-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f9f9f9;
+            border-radius: 15px;
+        }
+
+        .chart-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .chart-actions button {
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .chart-actions button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #customization-section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Data Visualizer Pro</h1>
+            <p>Upload your data and create stunning visualizations</p>
+        </header>
+
+        <section id="data-input-section">
+            <div class="input-methods">
+                <button id="upload-btn" class="method-btn active">📁 Upload File</button>
+                <button id="manual-btn" class="method-btn">✍️ Manual Input</button>
+            </div>
+
+            <div id="upload-area" class="input-area">
+                <div class="upload-zone" id="drop-zone">
+                    <p><strong>Drag & drop your CSV/JSON file here</strong></p>
+                    <p>or</p>
+                    <input type="file" id="file-input" accept=".csv,.json" hidden>
+                    <button onclick="document.getElementById('file-input').click()">Choose File</button>
+                </div>
+            </div>
+
+            <div id="manual-area" class="input-area hidden">
+                <textarea id="manual-data" placeholder="Enter comma-separated values (CSV format):
+Month,Sales,Expenses
+Jan,4000,2400
+Feb,3000,1398
+Mar,5000,2800
+Apr,4500,2200
+May,6000,3000"></textarea>
+                <button id="parse-manual-btn">Parse Data</button>
+            </div>
+        </section>
+
+        <section id="customization-section" class="hidden">
+            <h2>🎨 Customize Your Chart</h2>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>Chart Type</label>
+                    <select id="chart-type">
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="pie">Pie Chart</option>
+                        <option value="radar">Radar Chart</option>
+                        <option value="doughnut">Doughnut Chart</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>X-Axis Column</label>
+                    <select id="x-axis"></select>
+                </div>
+
+                <div class="control-group">
+                    <label>Y-Axis Column(s)</label>
+                    <select id="y-axis" multiple size="3"></select>
+                    <small style="color: #666;">Hold Ctrl/Cmd to select multiple</small>
+                </div>
+
+                <div class="control-group">
+                    <label>Animation Duration</label>
+                    <input type="range" id="animation-speed" min="0" max="3000" value="1000" step="100">
+                    <span id="speed-value">1000ms</span>
+                </div>
+
+                <div class="control-group">
+                    <label>Primary Color</label>
+                    <input type="color" id="color-picker" value="#667eea">
+                </div>
+
+                <div class="control-group">
+                    <label>Chart Title</label>
+                    <input type="text" id="chart-title" placeholder="My Awesome Chart">
+                </div>
+            </div>
+
+            <button id="generate-chart-btn" class="primary-btn">🚀 Generate Chart</button>
+            <button id="reset-btn" class="secondary-btn">🔄 Reset</button>
+        </section>
+
+        <section id="chart-section" class="hidden">
+            <canvas id="myChart"></canvas>
+            <div class="chart-actions">
+                <button id="download-btn">💾 Download Chart</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let chartInstance = null;
+        let parsedData = null;
+        let dataColumns = [];
+
+        const uploadBtn = document.getElementById('upload-btn');
+        const manualBtn = document.getElementById('manual-btn');
+        const uploadArea = document.getElementById('upload-area');
+        const manualArea = document.getElementById('manual-area');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const customizationSection = document.getElementById('customization-section');
+        const chartSection = document.getElementById('chart-section');
+        const generateBtn = document.getElementById('generate-chart-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const downloadBtn = document.getElementById('download-btn');
+
+        uploadBtn.addEventListener('click', () => toggleInputMethod('upload'));
+        manualBtn.addEventListener('click', () => toggleInputMethod('manual'));
+        fileInput.addEventListener('change', handleFileUpload);
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            processFile(file);
+        });
+
+        document.getElementById('parse-manual-btn').addEventListener('click', () => {
+            const manualText = document.getElementById('manual-data').value;
+            if (manualText.trim()) {
+                parseManualData(manualText);
+            } else {
+                alert('Please enter some data first!');
+            }
+        });
+
+        generateBtn.addEventListener('click', generateChart);
+        resetBtn.addEventListener('click', resetApp);
+        downloadBtn.addEventListener('click', downloadChart);
+
+        document.getElementById('animation-speed').addEventListener('input', (e) => {
+            document.getElementById('speed-value').textContent = e.target.value + 'ms';
+        });
+
+        function toggleInputMethod(method) {
+            if (method === 'upload') {
+                uploadBtn.classList.add('active');
+                manualBtn.classList.remove('active');
+                uploadArea.classList.remove('hidden');
+                manualArea.classList.add('hidden');
+            } else {
+                manualBtn.classList.add('active');
+                uploadBtn.classList.remove('active');
+                manualArea.classList.remove('hidden');
+                uploadArea.classList.add('hidden');
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            const fileType = file.name.split('.').pop().toLowerCase();
+            
+            if (fileType === 'csv') {
+                parseCSV(file);
+            } else if (fileType === 'json') {
+                parseJSON(file);
+            } else {
+                alert('Please upload a CSV or JSON file');
+            }
+        }
+
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parsedData = results.data;
+                        dataColumns = Object.keys(parsedData[0]);
+                        showCustomizationPanel();
+                    } else {
+                        alert('No data found in the CSV file');
+                    }
+                },
+                error: function(error) {
+                    alert('Error parsing CSV: ' + error.message);
+                }
+            });
+        }
+
+        function parseJSON(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    parsedData = JSON.parse(e.target.result);
+                    if (!Array.isArray(parsedData)) {
+                        alert('JSON must be an array of objects');
+                        return;
+                    }
+                    if (parsedData.length === 0) {
+                        alert('JSON array is empty');
+                        return;
+                    }
+                    dataColumns = Object.keys(parsedData[0]);
+                    showCustomizationPanel();
+                } catch (error) {
+                    alert('Error parsing JSON: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function parseManualData(text) {
+            Papa.parse(text, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        parsedData = results.data;
+                        dataColumns = Object.keys(parsedData[0]);
+                        showCustomizationPanel();
+                    } else {
+                        alert('Could not parse the data. Please check the format.');
+                    }
+                },
+                error: function(error) {
+                    alert('Error parsing data: ' + error.message);
+                }
+            });
+        }
+
+        function showCustomizationPanel() {
+            customizationSection.classList.remove('hidden');
+            
+            const xAxisSelect = document.getElementById('x-axis');
+            const yAxisSelect = document.getElementById('y-axis');
+            
+            xAxisSelect.innerHTML = '';
+            yAxisSelect.innerHTML = '';
+            
+            dataColumns.forEach(column => {
+                const xOption = document.createElement('option');
+                xOption.value = column;
+                xOption.textContent = column;
+                xAxisSelect.appendChild(xOption);
+                
+                const yOption = document.createElement('option');
+                yOption.value = column;
+                yOption.textContent = column;
+                yAxisSelect.appendChild(yOption);
+            });
+            
+            if (dataColumns.length >= 2) {
+                xAxisSelect.value = dataColumns[0];
+                yAxisSelect.options[1].selected = true;
+            }
+            
+            customizationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function generateChart() {
+            const chartType = document.getElementById('chart-type').value;
+            const xAxis = document.getElementById('x-axis').value;
+            const yAxisOptions = Array.from(document.getElementById('y-axis').selectedOptions).map(opt => opt.value);
+            const animationSpeed = parseInt(document.getElementById('animation-speed').value);
+            const primaryColor = document.getElementById('color-picker').value;
+            const chartTitle = document.getElementById('chart-title').value || 'Data Visualization';
+            
+            if (yAxisOptions.length === 0) {
+                alert('Please select at least one Y-axis column');
+                return;
+            }
+            
+            const labels = parsedData.map(row => row[xAxis]);
+            const datasets = yAxisOptions.map((yCol, index) => {
+                const colors = generateColors(primaryColor, yAxisOptions.length);
+                return {
+                    label: yCol,
+                    data: parsedData.map(row => row[yCol]),
+                    backgroundColor: colors[index],
+                    borderColor: colors[index].replace('0.6', '1'),
+                    borderWidth: 2,
+                    tension: 0.4
+                };
+            });
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const ctx = document.getElementById('myChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: {
+                        duration: animationSpeed
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: chartTitle,
+                            font: {
+                                size: 20
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: (chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar') ? {
+                        y: {
+                            beginAtZero: true
+                        }
+                    } : {}
+                }
+            });
+            
+            chartSection.classList.remove('hidden');
+            chartSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function generateColors(baseColor, count) {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = (i * 360 / count) % 360;
+                colors.push(`hsla(${hue}, 70%, 60%, 0.6)`);
+            }
+            return colors;
+        }
+
+        function downloadChart() {
+            const link = document.createElement('a');
+            link.download = 'chart.png';
+            link.href = chartInstance.toBase64Image();
+            link.click();
+        }
+
+        function resetApp() {
+            if (confirm('Are you sure you want to reset? All data will be lost.')) {
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
+```
+
+---
+
+## 📝 **HOW TO SAVE IT:**
+
+### **Windows:**
+1. Open **Notepad** (Search for "Notepad" in Start menu)
+2. **Copy ALL the code above** (Ctrl+A, then Ctrl+C)
+3. **Paste** into Notepad (Ctrl+V)
+4. Click **File → Save As**
+5. **Change "Save as type"** to **"All Files (*.*)"**
+6. **Name it:** `data-visualizer.html`
+7. **Save** to Desktop or any folder
+8. **Double-click** the file to open in browser!
+
+### **Mac:**
+1. Open **TextEdit**
+2. Go to **Format → Make Plain Text** (important!)
+3. **Copy and paste** the code above
+4. Click **File → Save**
+5. **Name it:** `data-visualizer.html`
+6. **Save** to Desktop
+7. **Double-click** to open in Safari/Chrome!
+
+---
+
+## 🎯 **TEST IT IMMEDIATELY:**
+
+Once you open the file, click **"✍️ Manual Input"** tab and paste this:
+```
+Month,Sales,Expenses
+Jan,4000,2400
+Feb,3000,1398
+Mar,5000,2800
+Apr,4500,2200
+May,6000,3000
